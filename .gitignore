@@ -2,14 +2,17 @@
 
 # dependencies
 /node_modules
+frontend/node_modules
 /.pnp
 .pnp.js
 
 # testing
 /coverage
+backend/.pytest_cache
 
 # next.js
 /.next/
+frontend/.next/
 /out/
 
 # production
@@ -34,3 +37,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python
+__pycache__/
+*.py[cod]
+backend/.venv/
+backend/*.db
+*.egg-info/
+.venv/
+
+# IDE
+.idea/
