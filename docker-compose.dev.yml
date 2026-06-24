@@ -1,0 +1,32 @@
+# Dev overlay: bind-mount source + live reload. Use with base compose:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Local Postgres:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile local-db up --build
+#
+# Optional Python debugger (attach IDE to localhost:5678):
+#   DEBUGPY_ENABLE=1 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+services:
+  backend:
+    command: ["/app/scripts/docker-dev-entrypoint.sh"]
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+      - "5678:5678"
+    environment:
+      DEBUGPY_ENABLE: ${DEBUGPY_ENABLE:-0}
+
+  frontend:
+    command: ["pnpm", "dev", "--hostname", "0.0.0.0"]
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    environment:
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+
+volumes:
+  frontend_node_modules:
