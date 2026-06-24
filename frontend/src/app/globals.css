@@ -1,0 +1,248 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  /* 4Geeks admin palette */
+  --slategray: rgb(53, 107, 126);
+  --darkgoldenrod: rgb(216, 147, 51);
+  --gainsboro: rgb(225, 223, 230);
+  --indianred: rgb(178, 85, 69);
+  --lightslategray: rgb(121, 151, 169);
+  --black: rgb(18, 13, 16);
+  --dodgerblue: rgb(16, 121, 230);
+  --tan: rgb(217, 174, 142);
+  --rosybrown: rgb(205, 169, 173);
+  --lightsteelblue: rgb(171, 184, 201);
+  --mediumaquamarine: rgb(90, 193, 150);
+
+  /* Admin neutrals */
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+
+  --background: var(--gray-50);
+  --foreground: var(--gray-900);
+  --card: #ffffff;
+  --card-foreground: var(--gray-900);
+  --popover: #ffffff;
+  --popover-foreground: var(--gray-900);
+  --primary: var(--dodgerblue);
+  --primary-foreground: #ffffff;
+  --secondary: var(--gray-100);
+  --secondary-foreground: var(--gray-700);
+  --muted: var(--gray-100);
+  --muted-foreground: var(--gray-500);
+  --accent: #eff6ff;
+  --accent-foreground: var(--dodgerblue);
+  --destructive: var(--indianred);
+  --destructive-foreground: #ffffff;
+  --success: #dcfce7;
+  --success-foreground: #14532d;
+  --warning: #fef3c7;
+  --warning-foreground: #78350f;
+  --border: var(--gray-200);
+  --input: var(--gray-200);
+  --ring: var(--dodgerblue);
+  --radius: 0.5rem;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--gray-600);
+  --sidebar-border: var(--gray-200);
+  --sidebar-accent: #eff6ff;
+  --sidebar-accent-foreground: var(--dodgerblue);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@layer components {
+  .admin-page {
+    @apply min-h-screen bg-background;
+  }
+
+  .admin-card {
+    @apply rounded-xl border border-border bg-card shadow-sm;
+  }
+
+  .admin-card-header {
+    @apply flex flex-wrap items-start justify-between gap-4 border-b border-border px-6 py-5;
+  }
+
+  .admin-card-body {
+    @apply px-6 py-5;
+  }
+
+  .admin-stat-card {
+    @apply rounded-xl border border-border bg-card p-5 shadow-sm;
+  }
+
+  .admin-list-row {
+    @apply flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-muted/50;
+  }
+
+  .admin-list-row-active {
+    @apply border-primary/30 bg-accent ring-1 ring-primary/20;
+  }
+
+  .admin-section-card {
+    @apply rounded-xl border border-border bg-card shadow-sm;
+  }
+
+  .admin-section-header {
+    @apply flex items-start gap-3 border-b border-border bg-muted/30 px-5 py-4;
+  }
+
+  .admin-module-row {
+    @apply flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5 transition-colors hover:border-primary/30 hover:bg-accent/50;
+  }
+
+  .admin-module-row-active {
+    @apply border-primary bg-accent;
+  }
+
+  .admin-content-row {
+    @apply flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2;
+  }
+
+  .admin-empty {
+    @apply rounded-xl border border-dashed border-border bg-card px-8 py-12 text-center text-sm text-muted-foreground;
+  }
+
+  .admin-sidebar-link {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-muted hover:text-foreground;
+  }
+
+  .admin-sidebar-link-active {
+    @apply bg-sidebar-accent text-sidebar-accent-foreground;
+  }
+
+  .admin-sidebar-icon {
+    @apply flex size-9 items-center justify-center rounded-lg text-sidebar-foreground transition-colors;
+  }
+
+  .admin-sidebar-icon-active {
+    @apply bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-primary/20;
+  }
+
+  .badge-theory {
+    @apply bg-blue-50 text-blue-700 ring-1 ring-blue-200;
+  }
+
+  .badge-exercise {
+    @apply bg-amber-50 text-amber-800 ring-1 ring-amber-200;
+  }
+
+  .badge-project {
+    @apply bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200;
+  }
+
+  .badge-section {
+    @apply bg-violet-50 text-violet-700 ring-1 ring-violet-200;
+  }
+
+  .badge-module {
+    @apply bg-sky-50 text-sky-700 ring-1 ring-sky-200;
+  }
+
+  .content-type-icon {
+    @apply flex size-8 shrink-0 items-center justify-center rounded-lg;
+  }
+
+  .content-type-icon--lesson {
+    background-color: rgb(239 246 255);
+    color: rgb(59, 130, 246);
+  }
+
+  .content-type-icon--quiz {
+    background-color: rgb(250 245 255);
+    color: rgb(168, 85, 247);
+  }
+
+  .content-type-icon--exercise {
+    background-color: rgb(240 253 244);
+    color: rgb(34, 197, 94);
+  }
+
+  .content-type-icon--project {
+    background-color: rgb(255 247 237);
+    color: rgb(249, 115, 22);
+  }
+
+  .dark .content-type-icon--lesson {
+    background-color: rgb(59 130 246 / 0.15);
+    color: rgb(147, 197, 253);
+  }
+
+  .dark .content-type-icon--quiz {
+    background-color: rgb(168 85 247 / 0.15);
+    color: rgb(216, 180, 254);
+  }
+
+  .dark .content-type-icon--exercise {
+    background-color: rgb(34 197 94 / 0.15);
+    color: rgb(134, 239, 172);
+  }
+
+  .dark .content-type-icon--project {
+    background-color: rgb(249 115 22 / 0.15);
+    color: rgb(253, 186, 116);
+  }
+}
