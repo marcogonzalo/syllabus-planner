@@ -1,0 +1,46 @@
+---
+description: Syllabus Planner monorepo stack and package managers
+alwaysApply: true
+---
+
+# Syllabus Planner — Project Stack
+
+Monorepo layout:
+
+- `frontend/` — TypeScript + Next.js (App Router)
+- `backend/` — Python FastAPI + SQLModel
+- `docker-compose.yml` — production-like stack (Postgres, backend, frontend)
+- `docker-compose.dev.yml` — dev overlay (bind mounts + live reload)
+
+## Package managers (mandatory)
+
+| Area             | Tool     | Never use           |
+| ---------------- | -------- | ------------------- |
+| Node / frontend  | **pnpm** | npm, yarn, bun      |
+| Python / backend | **uv**   | pip, poetry, pipenv |
+
+```bash
+# Frontend
+cd frontend && pnpm install
+
+# Backend
+cd backend && uv sync --extra dev
+```
+
+## Docker-first development
+
+Prefer Docker Compose for dev, test, and production-like runs:
+
+```bash
+# Day-to-day dev (live reload — no rebuild on code edits)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile local-db up --build
+
+# Production-like image (code baked in; rebuild to pick up changes)
+docker compose up --build
+```
+
+When running commands locally, use the same tools as Dockerfiles (`pnpm`, `uv`).
+
+## Agents-first API
+
+Every user-facing action must exist in the FastAPI backend first. Add or update `.cursor/skills/syllabus-planner-api.skill.md` before building frontend features that depend on new endpoints.

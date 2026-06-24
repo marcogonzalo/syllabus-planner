@@ -1,0 +1,32 @@
+---
+description: Next.js + TypeScript conventions for syllabus-planner frontend
+globs: frontend/**/*
+alwaysApply: false
+---
+
+# Frontend — Next.js + TypeScript
+
+Stack: Next.js (App Router), React, TypeScript, Tailwind CSS, shadcn/ui.
+
+## Commands (pnpm only)
+
+```bash
+cd frontend
+pnpm install          # deps
+pnpm dev              # dev server (:3000)
+pnpm lint             # ESLint
+pnpm build            # production build — must pass before PR
+```
+
+## Conventions
+
+- Use functional components and TypeScript strict types in `src/types/`.
+- Colocate UI in `src/components/`; pages in `src/app/`.
+- Fetch backend via `NEXT_PUBLIC_API_URL` (default `http://localhost:8000`).
+- Support light and dark mode; dark mode is default.
+- Drag-and-drop UI must keep sections, modules, and contents visually distinct.
+
+## Do not
+
+- Use `npm` or `yarn` to install or run scripts.
+- Add API logic only in the frontend — backend endpoints come first.

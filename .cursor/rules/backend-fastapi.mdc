@@ -1,0 +1,38 @@
+---
+description: FastAPI + Python conventions for syllabus-planner backend
+globs: backend/**/*
+alwaysApply: false
+---
+
+# Backend — FastAPI
+
+Stack: FastAPI, SQLModel, Pydantic v2, pytest, uvicorn.
+
+## Commands (uv only)
+
+```bash
+cd backend
+uv sync --extra dev     # install deps from pyproject.toml / uv.lock
+uv run pytest           # tests — must pass before PR
+uv run uvicorn app.main:app --reload --port 8000
+```
+
+## Layout
+
+- `app/routers/` — route handlers
+- `app/services/` — business logic
+- `app/schemas.py` — Pydantic models
+- `app/database.py` — DB session / engine
+- `tests/` — pytest (`test_*.py`)
+
+## Conventions
+
+- Follow TDD: write or update tests before implementation.
+- Target >80% coverage on app code; do not test frameworks or third-party libs.
+- Use async endpoints where I/O-bound; validate with Pydantic schemas.
+- CSV export must match `course-outline-generator` syllabus CSV format.
+
+## Do not
+
+- Use `pip install` directly — use `uv add` / `uv sync`.
+- Add frontend-only features without a corresponding API route.

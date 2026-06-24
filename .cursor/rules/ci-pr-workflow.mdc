@@ -1,0 +1,23 @@
+---
+description: CI and PR gates — invoke syllabus-planner-ci skill before PRs
+alwaysApply: true
+---
+
+# CI & Pull Request Workflow
+
+Before any PR or completion claim, run the **syllabus-planner-ci** skill:
+
+`.cursor/skills/syllabus-planner-ci/SKILL.md`
+
+## Mandatory
+
+1. Execute `.cursor/skills/syllabus-planner-ci/scripts/run-ci.sh`
+2. Fix failures and re-run until exit 0
+3. Report results with evidence (see skill report format)
+4. Only then create the PR
+
+## After new commits on an open PR
+
+Re-run the skill, then ask the user to re-run GitHub CI on the latest commit.
+
+Do not assume earlier green checks still apply.
