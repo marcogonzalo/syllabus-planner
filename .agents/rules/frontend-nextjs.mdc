@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Frontend — Next.js + TypeScript
 
-Stack: Next.js (App Router), React, TypeScript, Tailwind CSS, shadcn/ui.
+Stack: Next.js (App Router), React, TypeScript, Tailwind CSS, shadcn/ui, Vitest + RTL.
 
 ## Commands (pnpm only)
 
@@ -14,6 +14,7 @@ Stack: Next.js (App Router), React, TypeScript, Tailwind CSS, shadcn/ui.
 cd frontend
 pnpm install          # deps
 pnpm dev              # dev server (:3000)
+pnpm test             # vitest — must pass before PR
 pnpm lint             # ESLint
 pnpm build            # production build — must pass before PR
 ```
@@ -25,6 +26,15 @@ pnpm build            # production build — must pass before PR
 - Fetch backend via `NEXT_PUBLIC_API_URL` (default `http://localhost:8000`).
 - Support light and dark mode; dark mode is default.
 - Drag-and-drop UI must keep sections, modules, and contents visually distinct.
+- Inline editing: use `InlineEditor` component for click-to-edit titles and content.
+- Content text: first line = title, rest = body (split on save via backend `split_content_text`).
+- Content types: `theory`, `exercise`, `project`, `quiz` (add new types to `schemas.py` `CONTENT_TYPES`).
+
+## Testing
+
+- Tests live alongside components: `Component.test.tsx`
+- Use Vitest + React Testing Library (`@testing-library/react`)
+- Test files: `src/components/InlineEditor.test.tsx`, `ContentTypeIcon.test.tsx`, `src/lib/content.test.ts`
 
 ## Do not
 

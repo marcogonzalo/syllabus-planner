@@ -12,7 +12,13 @@ Base URL: `http://localhost:8000`
 - **Syllabus (program)**: root container
 - **Section / microsyllabus**: child syllabus linked to parent
 - **Module**: belongs to a section
-- **Content**: theory, exercise, or project inside a module
+- **Content**: theory, exercise, project, or quiz inside a module
+
+## Content types
+
+`theory`, `exercise`, `project`, `quiz`
+
+Content text convention: single text blob, first line = title, rest = body. Backend auto-splits via `split_content_text()`.
 
 ## Endpoints
 
@@ -21,6 +27,8 @@ Base URL: `http://localhost:8000`
 - `POST /syllabuses/` — create program
 - `GET /syllabuses/` — list programs
 - `GET /syllabuses/{id}` — nested tree with sections, modules (including `content_types`, `contents`), totals
+- `PATCH /syllabuses/{id}` — update title/description
+- `GET /syllabuses/search?q=...` — search syllabuses by title (for section import)
 - `POST /syllabuses/{parent_id}/sections` — create section and attach
 - `POST /syllabuses/{parent_id}/children/` — reuse existing syllabus as section
 - `PATCH /syllabuses/{id}/sections/reorder` — body: `{ "ordered_ids": [2,1,3] }`
@@ -32,7 +40,8 @@ Base URL: `http://localhost:8000`
 
 - `GET /modules/{id}` — module with contents, metadata, skills
 - `PATCH /modules/{id}` — update title
-- `POST /modules/{id}/contents/` — add content
+- `POST /modules/{id}/contents/` — add content (body auto-split from title if multiline)
+- `PUT /modules/{id}/contents/{content_id}` — update content text (body: `{ "text": "..." }`)
 - `PATCH /modules/{id}/contents/reorder` — reorder contents
 - `PUT /modules/{id}/metadata/` — update reflective metadata
 - `PUT /modules/{id}/skills` — body: `{ "skill_ids": [1,2] }`

@@ -9,8 +9,8 @@ Monorepo layout:
 
 - `frontend/` — TypeScript + Next.js (App Router)
 - `backend/` — Python FastAPI + SQLModel
-- `docker-compose.yml` — production-like stack (Postgres, backend, frontend)
-- `docker-compose.dev.yml` — dev overlay (bind mounts + live reload)
+- `docker-compose.yml` — dev stack (Postgres, backend, frontend with live reload)
+- `docker-compose.prod.yml` — production stack
 
 ## Package managers (mandatory)
 
@@ -23,6 +23,9 @@ Monorepo layout:
 # Frontend
 cd frontend && pnpm install
 
+# Frontend test
+cd frontend && pnpm test
+
 # Backend
 cd backend && uv sync --extra dev
 ```
@@ -33,10 +36,10 @@ Prefer Docker Compose for dev, test, and production-like runs:
 
 ```bash
 # Day-to-day dev (live reload — no rebuild on code edits)
-docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile local-db up --build
+docker compose --profile local-db up --build
 
 # Production-like image (code baked in; rebuild to pick up changes)
-docker compose up --build
+docker compose -f docker-compose.prod.yml up --build
 ```
 
 When running commands locally, use the same tools as Dockerfiles (`pnpm`, `uv`).
