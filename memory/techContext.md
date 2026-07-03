@@ -2,12 +2,13 @@
 
 ## Stack
 
-| Layer    | Tech                                                    | Package manager |
-| -------- | ------------------------------------------------------- | --------------- |
-| Frontend | Next.js 16, React 19, TypeScript, Tailwind 4, shadcn/ui | **pnpm**        |
-| Backend  | FastAPI, SQLModel, Pydantic v2, uvicorn                 | **uv**          |
-| Database | Postgres 16 (Docker) / SQLite (local fallback)          | —               |
-| DnD      | @dnd-kit/core, @dnd-kit/sortable                        | —               |
+| Layer    | Tech                                                        | Package manager |
+| -------- | ----------------------------------------------------------- | --------------- |
+| Frontend | Next.js 16, React 19, TS, Tailwind 4, shadcn/ui, @dnd-kit   | **pnpm**        |
+| Backend  | FastAPI, SQLModel, Pydantic v2, uvicorn                     | **uv**          |
+| Database | Postgres 16 (Docker) / SQLite (local fallback)              | —               |
+| DnD      | @dnd-kit/core, @dnd-kit/sortable                            | —               |
+| Testing  | Vitest + React Testing Library (frontend), pytest (backend) | —               |
 
 **Never use:** npm, yarn, bun (frontend) | pip, poetry, pipenv (backend)
 
@@ -46,6 +47,7 @@ uv run uvicorn app.main:app --reload --port 8000
 cd frontend
 pnpm install
 pnpm dev          # :3000
+pnpm test         # vitest
 pnpm lint
 pnpm build
 ```

@@ -6,7 +6,8 @@
 syllabus-planner/
 ├── backend/          FastAPI + SQLModel
 ├── frontend/         Next.js App Router + shadcn
-├── docker-compose.yml
+├── docker-compose.yml          dev stack (live reload)
+├── docker-compose.prod.yml     production stack
 ├── .cursor/          rules + agent skills
 └── memory-bank/      this context
 ```
@@ -28,6 +29,14 @@ All entities in `backend/app/models.py`:
 
 **Key pattern:** Sections are `Syllabus` rows linked to parent via `SyllabusHierarchy`. Root programs are syllabuses not appearing as `child_id` in hierarchy.
 
+## Content model
+
+Content types: `theory`, `exercise`, `project`, `quiz`
+
+Content text convention: single textarea, first line = title, rest = body. Backend auto-splits via `split_content_text()` in `content_display.py`. The `title` column stores the first line; `body` stores the rest.
+
+Validation: `schemas.py` uses `CONTENT_TYPES = ("theory", "exercise", "project", "quiz")` with `field_validator`.
+
 ## Backend layers
 
 ```
@@ -43,7 +52,7 @@ database.py  Engine, session, migrations, settings
 - `export.py` — CSV generation
 - `import_csv.py` — CSV import
 - `syllabus_csv_parser.py` — CSV parsing
-- `content_display.py` — title/body splitting for legacy content
+- `content_display.py` — title/body splitting (`split_content_text`, `split_legacy_content_title`)
 
 ## API design
 
@@ -51,6 +60,9 @@ database.py  Engine, session, migrations, settings
 - Reorder endpoints: `PATCH .../reorder` with `{ "ordered_ids": [...] }`
 - Tree detail: `GET /syllabuses/{id}` returns nested sections + modules + contents + totals
 - Export: `GET /syllabuses/{id}/export` → streaming CSV
+- Search: `GET /syllabuses/search?q=...` → find syllabuses by title (for section import)
+- Content update: `PUT /modules/{id}/contents/{content_id}` with `{ "text": "..." }` (auto-splits title/body)
+- Syllabus update: `PATCH /syllabuses/{id}` with `{ "title": "..." }`
 
 Full endpoint list: `.cursor/skills/syllabus-planner-api.skill.md`
 
@@ -59,7 +71,9 @@ Full endpoint list: `.cursor/skills/syllabus-planner-api.skill.md`
 - `src/lib/api.ts` — fetch wrapper against `NEXT_PUBLIC_API_URL`
 - `src/types/index.ts` — mirrors backend response shapes
 - `@dnd-kit` for drag-and-drop (sections, modules, contents)
-- Components: `SyllabusPlanner` (orchestrator), `SyllabusTree`, `ModuleEditor`, `SectionCard`, `DraggableItem`
+- Components: `SyllabusPlanner` (orchestrator), `SyllabusTree`, `ModuleEditor`, `SectionCard`, `DraggableItem`, `InlineEditor`
+- Inline editing: `InlineEditor` component for click-to-edit titles and content text
+- Section creation: dropdown with "New section" vs "Import existing syllabus" (search + attach)
 
 ## Agents-first workflow
 
@@ -79,9 +93,11 @@ Never ship frontend-only features without API backing.
 ## Testing
 
 - Backend: pytest in `backend/tests/` — TDD, >80% coverage target on app code
+- Frontend: Vitest + React Testing Library in `frontend/src/`
 - Test files: `test_syllabuses`, `test_modules`, `test_tree`, `test_export`, `test_import`, `test_content_display`, `test_models`
+- Frontend tests: `InlineEditor.test.tsx`, `ContentTypeIcon.test.tsx`, `content.test.ts`
 - Fixture CSV: `backend/tests/fixtures/sample_syllabus.csv`
 
 ## CI
 
-`.cursor/skills/syllabus-planner-ci/scripts/run-ci.sh` — backend pytest + frontend lint + build. Mandatory before PR.
+`.cursor/skills/syllabus-planner-ci/scripts/run-ci.sh` — backend pytest + frontend test + lint + build. Mandatory before PR.

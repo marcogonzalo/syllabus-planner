@@ -1,16 +1,21 @@
 # Active Context
 
-> Last updated: 2026-06-24
+> Last updated: 2026-07-02
 
 ## Current state
 
-Initial scaffold complete. Monorepo has working backend API, frontend planner UI, Docker Compose, agent skills, and test suite. Repo not yet committed to git (all files untracked at memory bank creation).
+UI/UX polish phase complete. Inline editing, quick-add content buttons, section import UX, and quiz content type all implemented. Frontend tests added and CI updated.
 
 ## Recent focus
 
-- Memory bank created for persistent agent context
-- Core features implemented: CRUD syllabuses/sections/modules/contents, metadata, skills, reorder, CSV export/import
-- Drag-and-drop UI with SyllabusTree + ModuleEditor
+- Added `quiz` as 4th content type (backend + frontend)
+- Content model: single textarea, first line = title, rest = body (`split_content_text`)
+- Inline click-to-edit for section titles, module titles, and content text
+- Quick-add buttons per content type (lesson, exercise, project, quiz)
+- Section creation: "New section" vs "Import existing syllabus" with search
+- Frontend tests: Vitest + RTL with 15 tests (InlineEditor, ContentTypeIcon, content utils)
+- CI updated to include `pnpm test` step
+- Backend tests: 30 passing (added quiz, content update, syllabus update, search tests)
 
 ## Active decisions
 
@@ -18,20 +23,22 @@ Initial scaffold complete. Monorepo has working backend API, frontend planner UI
 - **Postgres in Docker, SQLite fallback** for simple local/test runs
 - **Section = child Syllabus** via `syllabus_hierarchy` (not separate table)
 - **Content body split** from legacy combined titles via `content_display.py`
+- **Inline editing** preferred over modals for all text fields
+- **Cross-section content drag** deferred (not yet implemented)
 
 ## Next likely work
 
-- Git init / first commit
-- GitHub CI workflow (`.github/workflows/ci.yml` referenced but may not exist yet)
-- CSV import UI (backend import exists; frontend may be partial)
-- Auth if multi-user needed later
+- Visual polish: better drag handles, drop indicators, animations
+- Keyboard shortcuts for content creation
+- CSV import from frontend UI
+- Production deployment decision
 
 ## Watchouts
 
 - `.env` must not be committed
 - Run CI skill before any PR claim
 - CSV format changes must stay synced with `course-outline-generator` canonical file
-- Frontend README still has generic create-next-app text (not project-specific)
+- Content type validation in `schemas.py` — add new types to `CONTENT_TYPES` tuple
 
 ## Session handoff
 
