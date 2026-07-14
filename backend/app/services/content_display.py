@@ -1,3 +1,17 @@
+def split_content_text(text: str) -> tuple[str, str | None]:
+    normalized = text.strip()
+    if not normalized:
+        return "", None
+
+    if "\n" in normalized:
+        first_line, rest = normalized.split("\n", 1)
+        first_line = first_line.strip()
+        rest = rest.strip() or None
+        return first_line or normalized, rest
+
+    return normalized, None
+
+
 def _format_legacy_bullet_body(rest: str) -> str:
     parts = [part.strip() for part in rest.split(" - ") if part.strip()]
     if not parts:

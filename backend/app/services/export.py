@@ -23,6 +23,8 @@ def _content_section_label(content_type: str) -> str:
         return "> Projects"
     if content_type == "exercise":
         return "> Exercises"
+    if content_type == "quiz":
+        return "> Quizzes"
     return f"> {content_type.title()}:"
 
 
@@ -73,7 +75,7 @@ def _write_module_rows(
     for content in contents:
         grouped.setdefault(content.type, []).append(content)
 
-    for content_type in ("theory", "exercise", "project"):
+    for content_type in ("theory", "exercise", "project", "quiz"):
         items = grouped.get(content_type, [])
         if not items:
             continue

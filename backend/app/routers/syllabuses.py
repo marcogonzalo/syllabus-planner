@@ -8,6 +8,7 @@ from app.schemas import (
     SyllabusCreate,
     SyllabusRead,
     SyllabusDetailRead,
+    SyllabusUpdate,
     SectionCreate,
     ChildSyllabusAdd,
     ChildSyllabusRead,
@@ -42,12 +43,45 @@ def read_syllabuses(session: Session = Depends(get_session)):
     return [syllabus for syllabus in syllabuses if syllabus.id not in child_ids]
 
 
+@router.get("/search", response_model=list[SyllabusRead])
+def search_syllabuses(q: str = "", session: Session = Depends(get_session)):
+    child_ids = set(session.exec(select(SyllabusHierarchy.child_id)).all())
+    if q.strip():
+        syllabuses = session.exec(
+            select(Syllabus).where(Syllabus.title.ilike(
+                f"%{q}%")).order_by(Syllabus.id)
+        ).all()
+    else:
+        syllabuses = session.exec(select(Syllabus).order_by(Syllabus.id)).all()
+    return [s for s in syllabuses if s.id not in child_ids]
+
+
 @router.get("/{syllabus_id}", response_model=SyllabusDetailRead)
 def read_syllabus_detail(syllabus_id: int, session: Session = Depends(get_session)):
     detail = build_syllabus_detail(session, syllabus_id)
     if not detail:
         raise HTTPException(status_code=404, detail="Syllabus not found")
     return detail
+
+
+@router.patch("/{syllabus_id}", response_model=SyllabusRead)
+def update_syllabus(
+    syllabus_id: int,
+    payload: SyllabusUpdate,
+    session: Session = Depends(get_session),
+):
+    syllabus = session.get(Syllabus, syllabus_id)
+    if not syllabus:
+        raise HTTPException(status_code=404, detail="Syllabus not found")
+
+    if payload.title is not None:
+        syllabus.title = payload.title
+    if payload.description is not None:
+        syllabus.description = payload.description
+    session.add(syllabus)
+    session.commit()
+    session.refresh(syllabus)
+    return syllabus
 
 
 @router.post("/{parent_id}/sections", response_model=SyllabusDetailRead)
@@ -150,8 +184,18 @@ def attach_module_to_section(
         module = session.get(Module, payload.module_id)
         if not module:
             raise HTTPException(status_code=404, detail="Module not found")
+        if payload.duration_days is not None:
+            module.duration_days = payload.duration_days
+            session.add(module)
+            session.commit()
+            session.refresh(module)
     elif payload.title:
-        module = Module(title=payload.title)
+        module = Module(
+            title=payload.title,
+            duration_days=(
+                payload.duration_days if payload.duration_days is not None else 1.0
+            ),
+        )
         session.add(module)
         session.commit()
         session.refresh(module)

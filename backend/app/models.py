@@ -33,6 +33,7 @@ class Syllabus(SQLModel, table=True):
 class Module(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
+    duration_days: float = Field(default=1.0)
 
 
 class Content(SQLModel, table=True):

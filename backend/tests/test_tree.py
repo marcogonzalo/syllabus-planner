@@ -40,8 +40,59 @@ def test_read_syllabus_detail_with_sections_and_totals(client: TestClient, sessi
     assert len(data["sections"]) == 1
     assert data["sections"][0]["title"] == "Prework"
     assert data["sections"][0]["totals"]["modules"] == 1
+    assert data["sections"][0]["totals"]["days"] == 1
     assert data["sections"][0]["totals"]["hours"] == 10
     assert data["totals"]["modules"] == 1
+    assert data["sections"][0]["modules"][0]["duration_days"] == 1
+
+
+def test_attach_module_with_duration_days(client: TestClient):
+    root = client.post("/syllabuses/", json={"title": "AI Engineering"}).json()
+    detail = client.post(
+        f"/syllabuses/{root['id']}/sections",
+        json={
+            "title": "Foundations",
+            "hours_per_module": 8,
+            "extra_hours_per_module": 2,
+            "order_index": 0,
+        },
+    ).json()
+    section_id = detail["sections"][0]["id"]
+
+    response = client.post(
+        f"/syllabuses/{section_id}/modules",
+        json={"title": "Warmup", "duration_days": 0.5, "order_index": 0},
+    )
+    assert response.status_code == 200
+    module = response.json()
+    assert module["title"] == "Warmup"
+    assert module["duration_days"] == 0.5
+
+    client.post(
+        f"/syllabuses/{section_id}/modules",
+        json={"title": "Deep Dive", "duration_days": 1, "order_index": 1},
+    )
+
+    tree = client.get(f"/syllabuses/{root['id']}").json()
+    totals = tree["sections"][0]["totals"]
+    assert totals["modules"] == 2
+    assert totals["days"] == 1.5
+    assert totals["hours"] == 15
+
+
+def test_attach_module_rejects_non_positive_duration(client: TestClient):
+    root = client.post("/syllabuses/", json={"title": "AI Engineering"}).json()
+    detail = client.post(
+        f"/syllabuses/{root['id']}/sections",
+        json={"title": "Foundations", "order_index": 0},
+    ).json()
+    section_id = detail["sections"][0]["id"]
+
+    response = client.post(
+        f"/syllabuses/{section_id}/modules",
+        json={"title": "Bad", "duration_days": 0},
+    )
+    assert response.status_code == 422
 
 
 def test_create_section_endpoint(client: TestClient):

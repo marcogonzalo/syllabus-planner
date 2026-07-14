@@ -11,8 +11,10 @@ Base URL: `http://localhost:8000`
 
 - **Syllabus (program)**: root container
 - **Section / microsyllabus**: child syllabus linked to parent
-- **Module**: belongs to a section
+- **Module**: belongs to a section; has `title` and `duration_days` (default `1`, half-days ok)
 - **Content**: theory, exercise, project, or quiz inside a module
+
+Section/program totals: `days` = sum of module `duration_days`; `hours` = `days × (hours_per_module + extra_hours_per_module)`.
 
 ## Content types
 
@@ -32,14 +34,15 @@ Content text convention: single text blob, first line = title, rest = body. Back
 - `POST /syllabuses/{parent_id}/sections` — create section and attach
 - `POST /syllabuses/{parent_id}/children/` — reuse existing syllabus as section
 - `PATCH /syllabuses/{id}/sections/reorder` — body: `{ "ordered_ids": [2,1,3] }`
-- `POST /syllabuses/{section_id}/modules` — body: `{ "title": "..." }` or `{ "module_id": 1 }`
+- `POST /syllabuses/{section_id}/modules` — body: `{ "title": "...", "duration_days": 0.5 }` or `{ "module_id": 1 }` (`duration_days` optional, default `1`, must be `> 0`; half-days allowed)
 - `PATCH /syllabuses/{section_id}/modules/reorder` — body: `{ "ordered_ids": [3,1,2] }`
 - `GET /syllabuses/{id}/export` — CSV download
 
 ### Modules
 
-- `GET /modules/{id}` — module with contents, metadata, skills
-- `PATCH /modules/{id}` — update title
+- `POST /modules/` — create module (`title`, optional `duration_days`)
+- `GET /modules/{id}` — module with contents, metadata, skills, `duration_days`
+- `PATCH /modules/{id}` — update title / duration_days
 - `POST /modules/{id}/contents/` — add content (body auto-split from title if multiline)
 - `PUT /modules/{id}/contents/{content_id}` — update content text (body: `{ "text": "..." }`)
 - `PATCH /modules/{id}/contents/reorder` — reorder contents

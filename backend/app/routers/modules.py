@@ -9,6 +9,7 @@ from app.schemas import (
     ModuleDetailRead,
     ContentCreate,
     ContentRead,
+    ContentUpdate,
     ModuleMetadataUpdate,
     ModuleMetadataRead,
     ReorderRequest,
@@ -16,6 +17,7 @@ from app.schemas import (
     SkillCreate,
     ModuleSkillsUpdate,
 )
+from app.services.content_display import split_content_text
 from app.services.syllabus_tree import reorder_rows
 
 router = APIRouter(prefix="/modules", tags=["modules"])
@@ -49,6 +51,7 @@ def _build_module_detail(session: Session, module_id: int) -> ModuleDetailRead |
     return ModuleDetailRead(
         id=module.id,
         title=module.title,
+        duration_days=module.duration_days,
         syllabus_id=section_rel.syllabus_id if section_rel else None,
         contents=[ContentRead.model_validate(content) for content in contents],
         metadata=ModuleMetadataRead.model_validate(
@@ -86,6 +89,7 @@ def update_module(
         raise HTTPException(status_code=404, detail="Module not found")
 
     db_module.title = module.title
+    db_module.duration_days = module.duration_days
     session.add(db_module)
     session.commit()
     session.refresh(db_module)
@@ -102,11 +106,16 @@ def add_content(
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
 
+    title = content.title
+    body = content.body
+    if content.body is None and "\n" in content.title:
+        title, body = split_content_text(content.title)
+
     db_content = Content(
         module_id=module_id,
         type=content.type,
-        title=content.title,
-        body=content.body,
+        title=title,
+        body=body,
         order_index=content.order_index,
     )
     session.add(db_content)
@@ -136,6 +145,26 @@ def reorder_contents(
     if not detail:
         raise HTTPException(status_code=404, detail="Module not found")
     return detail
+
+
+@router.put("/{module_id}/contents/{content_id}", response_model=ContentRead)
+def update_content(
+    module_id: int,
+    content_id: int,
+    payload: ContentUpdate,
+    session: Session = Depends(get_session),
+):
+    content = session.get(Content, content_id)
+    if not content or content.module_id != module_id:
+        raise HTTPException(status_code=404, detail="Content not found")
+
+    title, body = split_content_text(payload.text)
+    content.title = title
+    content.body = body
+    session.add(content)
+    session.commit()
+    session.refresh(content)
+    return content
 
 
 @router.put("/{module_id}/metadata/", response_model=ModuleMetadataRead)

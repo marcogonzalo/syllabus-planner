@@ -68,3 +68,48 @@ def test_add_child_syllabus(client: TestClient, session: Session):
     data = response.json()
     assert data["parent_id"] == parent.id
     assert data["child_id"] == child.id
+
+
+def test_update_syllabus_title(client: TestClient):
+    res = client.post("/syllabuses/", json={"title": "Old Title"})
+    syllabus_id = res.json()["id"]
+
+    response = client.patch(
+        f"/syllabuses/{syllabus_id}",
+        json={"title": "New Title"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["title"] == "New Title"
+
+
+def test_search_syllabuses(client: TestClient):
+    client.post("/syllabuses/", json={"title": "AI Engineering"})
+    client.post("/syllabuses/", json={"title": "Web Development"})
+    client.post("/syllabuses/", json={"title": "Data Science"})
+
+    response = client.get("/syllabuses/search?q=AI")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["title"] == "AI Engineering"
+
+
+def test_search_syllabuses_excludes_linked_sections(client: TestClient, session: Session):
+    parent = Syllabus(title="Parent")
+    section = Syllabus(title="AI Section")
+    session.add(parent)
+    session.add(section)
+    session.commit()
+    session.refresh(parent)
+    session.refresh(section)
+
+    client.post(
+        f"/syllabuses/{parent.id}/children/",
+        json={"child_id": section.id, "order_index": 0},
+    )
+
+    response = client.get("/syllabuses/search?q=AI")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 0

@@ -7,6 +7,11 @@ from app.database import get_session
 from app.main import app
 
 
+@pytest.fixture(autouse=True)
+def _patch_init_db(monkeypatch):
+    monkeypatch.setattr("app.main.init_db", lambda: None)
+
+
 @pytest.fixture(name="engine")
 def engine_fixture():
     engine = create_engine(

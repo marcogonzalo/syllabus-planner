@@ -16,11 +16,15 @@ from app.schemas import (
 )
 
 
-def _section_totals(section: Syllabus, module_count: int) -> TotalsRead:
+def _section_totals(
+    section: Syllabus, modules: list[Module]
+) -> TotalsRead:
     hours_per = section.hours_per_module or 0
     extra_hours = section.extra_hours_per_module or 0
-    hours = module_count * (hours_per + extra_hours)
-    return TotalsRead(modules=module_count, days=module_count, hours=hours)
+    hours_rate = hours_per + extra_hours
+    days = sum(module.duration_days for module in modules)
+    hours = days * hours_rate
+    return TotalsRead(modules=len(modules), days=days, hours=hours)
 
 
 def _merge_totals(left: TotalsRead, right: TotalsRead) -> TotalsRead:
@@ -73,6 +77,7 @@ def build_module_summary_read(
     return ModuleSummaryRead(
         id=module.id,
         title=module.title,
+        duration_days=module.duration_days,
         order_index=order_index,
         primary_content_type=_primary_content_type(raw_types),
         content_types=_unique_content_types(raw_types),
@@ -105,7 +110,7 @@ def build_section_read(session: Session, section: Syllabus, order_index: int) ->
         build_module_summary_read(session, module, rel.order_index)
         for rel, module in module_rows
     ]
-    totals = _section_totals(section, len(modules))
+    totals = _section_totals(section, [module for _, module in module_rows])
     return SectionRead(
         id=section.id,
         title=section.title,

@@ -46,7 +46,7 @@ def _content_item_to_body(item: ContentItem, max_len: int = 8000) -> str | None:
 
 
 def _normalize_content_type(content_type: str) -> str:
-    if content_type in ("theory", "exercise", "project"):
+    if content_type in ("theory", "exercise", "project", "quiz"):
         return content_type
     return "theory"
 

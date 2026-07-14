@@ -44,6 +44,7 @@ engine = create_engine(
 def init_db() -> None:
     SQLModel.metadata.create_all(engine)
     _migrate_content_body_column()
+    _migrate_module_duration_days_column()
     _backfill_content_body()
 
 
@@ -58,6 +59,23 @@ def _migrate_content_body_column() -> None:
 
     with engine.begin() as connection:
         connection.execute(text("ALTER TABLE content ADD COLUMN body TEXT"))
+
+
+def _migrate_module_duration_days_column() -> None:
+    inspector = inspect(engine)
+    if "module" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("module")}
+    if "duration_days" in columns:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "ALTER TABLE module ADD COLUMN duration_days FLOAT NOT NULL DEFAULT 1.0"
+            )
+        )
 
 
 def _backfill_content_body() -> None:

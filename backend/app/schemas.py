@@ -1,11 +1,13 @@
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+CONTENT_TYPES = ("theory", "exercise", "project", "quiz")
 
 
 class TotalsRead(BaseModel):
     modules: int = 0
-    days: int = 0
-    hours: int = 0
+    days: float = 0
+    hours: float = 0
 
 
 class SyllabusCreate(BaseModel):
@@ -17,6 +19,11 @@ class SyllabusCreate(BaseModel):
 
 class SyllabusRead(SyllabusCreate):
     id: int
+
+
+class SyllabusUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
 
 
 class SectionCreate(SyllabusCreate):
@@ -47,6 +54,7 @@ class ContentSummaryRead(BaseModel):
 class ModuleSummaryRead(BaseModel):
     id: int
     title: str
+    duration_days: float = 1.0
     order_index: int
     primary_content_type: Optional[str] = None
     content_types: List[str] = []
@@ -66,6 +74,7 @@ class SyllabusDetailRead(SyllabusRead):
 
 class ModuleCreate(BaseModel):
     title: str
+    duration_days: float = Field(default=1.0, gt=0)
 
 
 class ModuleRead(ModuleCreate):
@@ -75,6 +84,7 @@ class ModuleRead(ModuleCreate):
 class ModuleAttach(BaseModel):
     module_id: Optional[int] = None
     title: Optional[str] = None
+    duration_days: Optional[float] = Field(default=None, gt=0)
     order_index: int = 0
 
 
@@ -83,6 +93,25 @@ class ContentCreate(BaseModel):
     title: str
     body: Optional[str] = None
     order_index: int = 0
+
+    @field_validator("type")
+    @classmethod
+    def validate_content_type(cls, v: str) -> str:
+        if v not in CONTENT_TYPES:
+            raise ValueError(
+                f"Content type must be one of: {', '.join(CONTENT_TYPES)}")
+        return v
+
+
+class ContentUpdate(BaseModel):
+    text: str
+
+    @field_validator("text")
+    @classmethod
+    def validate_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Content text cannot be empty")
+        return v
 
 
 class ContentRead(ContentCreate):
