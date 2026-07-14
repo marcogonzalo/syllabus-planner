@@ -35,6 +35,11 @@ export function fetchSyllabuses() {
   return request<SyllabusSummary[]>("/syllabuses/");
 }
 
+export function searchSyllabuses(q?: string) {
+  const query = q ? `?q=${encodeURIComponent(q)}` : "";
+  return request<SyllabusSummary[]>(`/syllabuses/search${query}`);
+}
+
 export function fetchSyllabusDetail(id: number) {
   return request<SyllabusDetail>(`/syllabuses/${id}`);
 }
@@ -42,6 +47,16 @@ export function fetchSyllabusDetail(id: number) {
 export function createSyllabus(data: { title: string; description?: string }) {
   return request<SyllabusSummary>("/syllabuses/", {
     method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateSyllabus(
+  id: number,
+  data: { title?: string; description?: string },
+) {
+  return request<SyllabusSummary>(`/syllabuses/${id}`, {
+    method: "PATCH",
     body: JSON.stringify(data),
   });
 }
@@ -69,9 +84,25 @@ export function reorderSections(syllabusId: number, orderedIds: number[]) {
   });
 }
 
+export function importSyllabusAsSection(
+  parentId: number,
+  childId: number,
+  orderIndex: number = 0,
+) {
+  return request(`/syllabuses/${parentId}/children/`, {
+    method: "POST",
+    body: JSON.stringify({ child_id: childId, order_index: orderIndex }),
+  });
+}
+
 export function attachModuleToSection(
   sectionId: number,
-  data: { module_id?: number; title?: string; order_index?: number },
+  data: {
+    module_id?: number;
+    title?: string;
+    duration_days?: number;
+    order_index?: number;
+  },
 ) {
   return request<ModuleSummary>(`/syllabuses/${sectionId}/modules`, {
     method: "POST",
@@ -90,10 +121,13 @@ export function fetchModule(moduleId: number) {
   return request<ModuleDetail>(`/modules/${moduleId}`);
 }
 
-export function updateModule(moduleId: number, title: string) {
+export function updateModule(
+  moduleId: number,
+  data: { title: string; duration_days?: number },
+) {
   return request<ModuleDetail>(`/modules/${moduleId}`, {
     method: "PATCH",
-    body: JSON.stringify({ title }),
+    body: JSON.stringify(data),
   });
 }
 
@@ -142,4 +176,15 @@ export function updateModuleSkills(moduleId: number, skillIds: number[]) {
 
 export function exportSyllabusCsv(syllabusId: number) {
   return `${API_URL}/syllabuses/${syllabusId}/export`;
+}
+
+export function updateContent(
+  moduleId: number,
+  contentId: number,
+  text: string,
+) {
+  return request(`/modules/${moduleId}/contents/${contentId}`, {
+    method: "PUT",
+    body: JSON.stringify({ text }),
+  });
 }

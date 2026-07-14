@@ -12,9 +12,12 @@ export type ContentSummary = {
   order_index: number;
 };
 
+export type ContentType = "theory" | "exercise" | "project" | "quiz";
+
 export type ModuleSummary = {
   id: number;
   title: string;
+  duration_days: number;
   order_index: number;
   primary_content_type?: string | null;
   content_types?: string[];
@@ -71,6 +74,7 @@ export type Skill = {
 export type ModuleDetail = {
   id: number;
   title: string;
+  duration_days: number;
   syllabus_id?: number | null;
   contents: ContentItem[];
   metadata?: ModuleMetadata | null;

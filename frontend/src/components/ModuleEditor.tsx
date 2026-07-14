@@ -21,14 +21,15 @@ import { GripVertical, Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { ContentTypeIcon } from "@/components/ContentTypeIcon";
+import { InlineEditor } from "@/components/InlineEditor";
 import { MetadataForm } from "@/components/MetadataForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   addContentToModule,
   fetchModule,
   reorderModuleContents,
+  updateContent,
   updateModule,
 } from "@/lib/api";
 import type { ContentItem, ModuleDetail } from "@/types";
@@ -42,10 +43,17 @@ type ModuleEditorProps = {
 function contentBadgeClass(type: string) {
   if (type === "theory") return "badge-theory";
   if (type === "exercise") return "badge-exercise";
+  if (type === "quiz") return "badge-quiz";
   return "badge-project";
 }
 
-function ContentRow({ content }: { content: ContentItem }) {
+function ContentRow({
+  content,
+  onUpdated,
+}: {
+  content: ContentItem;
+  onUpdated: () => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: content.id });
 
@@ -53,6 +61,15 @@ function ContentRow({ content }: { content: ContentItem }) {
     transform: CSS.Transform.toString(transform),
     transition,
   };
+
+  const fullText = content.body
+    ? `${content.title}\n${content.body}`
+    : content.title;
+
+  async function handleSave(text: string) {
+    await updateContent(content.module_id, content.id, text);
+    await onUpdated();
+  }
 
   return (
     <div ref={setNodeRef} style={style} className="admin-content-row">
@@ -68,14 +85,12 @@ function ContentRow({ content }: { content: ContentItem }) {
       <ContentTypeIcon type={content.type} />
       <Badge className={contentBadgeClass(content.type)}>{content.type}</Badge>
       <div className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium text-foreground">
-          {content.title}
-        </span>
-        {content.body ? (
-          <p className="mt-1 line-clamp-2 text-xs whitespace-pre-wrap text-muted-foreground">
-            {content.body}
-          </p>
-        ) : null}
+        <InlineEditor
+          value={fullText}
+          onSave={handleSave}
+          multiline
+          className="w-full text-sm"
+        />
       </div>
     </div>
   );
@@ -87,13 +102,11 @@ export function ModuleEditor({
   onUpdated,
 }: ModuleEditorProps) {
   const [module, setModule] = useState<ModuleDetail | null>(null);
-  const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
 
   const loadModule = useCallback(async () => {
     const detail = await fetchModule(moduleId);
     setModule(detail);
-    setTitle(detail.title);
   }, [moduleId]);
 
   useEffect(() => {
@@ -103,7 +116,6 @@ export function ModuleEditor({
       .then((detail) => {
         if (!cancelled) {
           setModule(detail);
-          setTitle(detail.title);
         }
       })
       .catch(console.error);
@@ -120,10 +132,10 @@ export function ModuleEditor({
     }),
   );
 
-  async function handleSaveTitle() {
+  async function handleSaveTitle(newTitle: string) {
     setSaving(true);
     try {
-      await updateModule(moduleId, title);
+      await updateModule(moduleId, { title: newTitle });
       await onUpdated();
       await loadModule();
     } finally {
@@ -131,23 +143,10 @@ export function ModuleEditor({
     }
   }
 
-  async function handleAddContent() {
-    const contentTitle = window.prompt("Content title");
-    if (!contentTitle?.trim()) {
-      return;
-    }
-
-    const contentType = window.prompt(
-      "Type: theory, exercise, or project",
-      "theory",
-    );
-    if (!contentType) {
-      return;
-    }
-
+  async function handleAddContent(type: string) {
     await addContentToModule(moduleId, {
-      type: contentType.trim().toLowerCase(),
-      title: contentTitle.trim(),
+      type,
+      title: "New content",
       order_index: module?.contents.length ?? 0,
     });
     await loadModule();
@@ -189,14 +188,14 @@ export function ModuleEditor({
             Module editor
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
+            <InlineEditor
+              value={module.title}
+              onSave={handleSaveTitle}
               className="max-w-md text-base font-medium"
             />
-            <Button onClick={handleSaveTitle} disabled={saving} size="sm">
-              {saving ? "Saving..." : "Save"}
-            </Button>
+            {saving ? (
+              <span className="text-xs text-muted-foreground">Saving...</span>
+            ) : null}
           </div>
           {sectionId ? (
             <p className="mt-2 text-xs text-muted-foreground">
@@ -210,15 +209,44 @@ export function ModuleEditor({
         <div>
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-foreground">Contents</h3>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddContent}
-            >
-              <Plus className="size-4" />
-              Add Content
-            </Button>
+            <div className="flex flex-wrap gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddContent("theory")}
+              >
+                <Plus className="size-3" />
+                Lesson
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddContent("exercise")}
+              >
+                <Plus className="size-3" />
+                Exercise
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddContent("project")}
+              >
+                <Plus className="size-3" />
+                Project
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleAddContent("quiz")}
+              >
+                <Plus className="size-3" />
+                Quiz
+              </Button>
+            </div>
           </div>
 
           <DndContext
@@ -232,7 +260,11 @@ export function ModuleEditor({
             >
               <div className="flex flex-col gap-2">
                 {module.contents.map((content) => (
-                  <ContentRow key={content.id} content={content} />
+                  <ContentRow
+                    key={content.id}
+                    content={content}
+                    onUpdated={loadModule}
+                  />
                 ))}
               </div>
             </SortableContext>

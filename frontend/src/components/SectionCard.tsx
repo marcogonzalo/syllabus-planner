@@ -21,6 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Clock, ChevronDown, GripVertical, Layers, Plus } from "lucide-react";
 
 import { DraggableItem } from "@/components/DraggableItem";
+import { InlineEditor } from "@/components/InlineEditor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -33,16 +34,25 @@ type SectionCardProps = {
   onReorderModules: (sectionId: number, orderedIds: number[]) => Promise<void>;
   onReorderContents: (moduleId: number, orderedIds: number[]) => Promise<void>;
   onAddModule: (sectionId: number) => void;
+  onUpdateTitle: (sectionId: number, title: string) => Promise<void>;
+  onUpdateModuleTitle?: (moduleId: number, title: string) => Promise<void>;
+  onUpdateContent?: (
+    moduleId: number,
+    contentId: number,
+    text: string,
+  ) => Promise<void>;
 };
 
 function SectionShell({
   section,
   children,
   selectedModuleId,
+  onUpdateTitle,
 }: {
   section: Section;
   children: React.ReactNode;
   selectedModuleId: number | null;
+  onUpdateTitle?: (title: string) => void;
 }) {
   const [userCollapsed, setUserCollapsed] = useState(false);
   const hasSelectedModule = section.modules.some(
@@ -86,17 +96,26 @@ function SectionShell({
         </div>
 
         <div className="flex min-w-0 flex-1 cursor-pointer items-start gap-1">
-          <button
-            type="button"
+          <div
+            role="button"
+            tabIndex={0}
             className="min-w-0 flex-1 cursor-pointer text-left"
             onClick={() => setUserCollapsed((current) => !current)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                setUserCollapsed((current) => !current);
+              }
+            }}
             aria-expanded={!collapsed}
           >
             <div className="flex flex-wrap items-center gap-2">
               <Badge className="badge-section">Section</Badge>
-              <h3 className="text-base font-semibold text-foreground">
-                {section.title}
-              </h3>
+              <InlineEditor
+                value={section.title}
+                onSave={(title) => onUpdateTitle?.(title)}
+                className="text-base font-semibold text-foreground"
+              />
             </div>
             {section.description ? (
               <p className="mt-1 text-sm text-muted-foreground">
@@ -106,7 +125,7 @@ function SectionShell({
             <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <Clock className="size-3.5" />
-                {section.totals.hours}h total
+                {section.totals.days}d · {section.totals.hours}h total
               </span>
               <span>{section.totals.modules} modules</span>
               <span>
@@ -114,7 +133,7 @@ function SectionShell({
                 {section.extra_hours_per_module ?? 0}h extra
               </span>
             </div>
-          </button>
+          </div>
 
           <button
             type="button"
@@ -149,6 +168,9 @@ export function SectionCard({
   onReorderModules,
   onReorderContents,
   onAddModule,
+  onUpdateTitle,
+  onUpdateModuleTitle,
+  onUpdateContent,
 }: SectionCardProps) {
   const moduleIds = section.modules.map((module) => module.id);
   const sensors = useSensors(
@@ -171,7 +193,11 @@ export function SectionCard({
   }
 
   return (
-    <SectionShell section={section} selectedModuleId={selectedModuleId}>
+    <SectionShell
+      section={section}
+      selectedModuleId={selectedModuleId}
+      onUpdateTitle={(title) => onUpdateTitle(section.id, title)}
+    >
       <div className="mb-3 flex items-center justify-between">
         <p className="text-sm font-medium text-muted-foreground">Modules</p>
         <Button
@@ -211,6 +237,12 @@ export function SectionCard({
                   selected={selectedModuleId === module.id}
                   onSelect={() => onSelectModule(module.id, section.id)}
                   onReorderContents={onReorderContents}
+                  onUpdateTitle={
+                    onUpdateModuleTitle
+                      ? (title) => onUpdateModuleTitle(module.id, title)
+                      : undefined
+                  }
+                  onUpdateContent={onUpdateContent}
                 />
               ))}
             </div>

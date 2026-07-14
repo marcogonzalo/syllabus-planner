@@ -22,6 +22,7 @@ import { ChevronDown, GripVertical } from "lucide-react";
 
 import { ContentTypeIcon } from "@/components/ContentTypeIcon";
 import { ContentTypeIconStack } from "@/components/ContentTypeIconStack";
+import { InlineEditor } from "@/components/InlineEditor";
 import { Badge } from "@/components/ui/badge";
 import { resolveContentDisplay } from "@/lib/content";
 import { cn } from "@/lib/utils";
@@ -29,12 +30,15 @@ import type { ContentSummary } from "@/types";
 
 type ContentItemRowProps = {
   content: ContentSummary;
+  onSave?: (text: string) => Promise<void>;
 };
 
-function ContentItemRow({ content }: ContentItemRowProps) {
+function ContentItemRow({ content, onSave }: ContentItemRowProps) {
   const [expanded, setExpanded] = useState(false);
   const { title, body } = resolveContentDisplay(content);
   const hasBody = Boolean(body);
+
+  const fullText = body ? `${title}\n${body}` : title;
 
   const {
     attributes,
@@ -72,14 +76,21 @@ function ContentItemRow({ content }: ContentItemRowProps) {
           <GripVertical className="size-4" />
         </button>
 
-        <button
-          type="button"
+        <div
           className={cn(
             "flex min-w-0 flex-1 items-center gap-3 text-left",
             hasBody && "cursor-pointer",
           )}
           onClick={() => {
             if (hasBody) {
+              setExpanded((current) => !current);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if ((event.key === "Enter" || event.key === " ") && hasBody) {
+              event.preventDefault();
               setExpanded((current) => !current);
             }
           }}
@@ -93,9 +104,15 @@ function ContentItemRow({ content }: ContentItemRowProps) {
           }
         >
           <ContentTypeIcon type={content.type} />
-          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-            {title}
-          </span>
+          <div className="min-w-0 flex-1">
+            <InlineEditor
+              value={fullText}
+              onSave={onSave ?? (async () => {})}
+              multiline
+              displayValue={title}
+              className="text-sm font-medium text-foreground"
+            />
+          </div>
           {hasBody ? (
             <ChevronDown
               className={cn(
@@ -104,7 +121,7 @@ function ContentItemRow({ content }: ContentItemRowProps) {
               )}
             />
           ) : null}
-        </button>
+        </div>
       </div>
       {hasBody && expanded ? (
         <div className="mt-2 pl-11 text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
@@ -119,12 +136,14 @@ type ModuleContentsListProps = {
   moduleId: number;
   contents: ContentSummary[];
   onReorderContents: (moduleId: number, orderedIds: number[]) => Promise<void>;
+  onUpdateContent?: (moduleId: number, contentId: number, text: string) => Promise<void>;
 };
 
 function ModuleContentsList({
   moduleId,
   contents,
   onReorderContents,
+  onUpdateContent,
 }: ModuleContentsListProps) {
   const contentIds = contents.map((content) => content.id);
   const sensors = useSensors(
@@ -160,7 +179,11 @@ function ModuleContentsList({
       >
         <div className="ml-7 flex flex-col gap-2 border-l border-border pl-3">
           {contents.map((content) => (
-            <ContentItemRow key={content.id} content={content} />
+            <ContentItemRow
+              key={content.id}
+              content={content}
+              onSave={onUpdateContent ? (text) => onUpdateContent(moduleId, content.id, text) : undefined}
+            />
           ))}
         </div>
       </SortableContext>
@@ -178,6 +201,8 @@ type DraggableItemProps = {
   selected?: boolean;
   onSelect?: () => void;
   onReorderContents?: (moduleId: number, orderedIds: number[]) => Promise<void>;
+  onUpdateTitle?: (title: string) => Promise<void>;
+  onUpdateContent?: (moduleId: number, contentId: number, text: string) => Promise<void>;
 };
 
 export function DraggableItem({
@@ -190,6 +215,8 @@ export function DraggableItem({
   selected = false,
   onSelect,
   onReorderContents,
+  onUpdateTitle,
+  onUpdateContent,
 }: DraggableItemProps) {
   const [expanded, setExpanded] = useState(false);
   const isModule = kind === "module";
@@ -239,10 +266,17 @@ export function DraggableItem({
           <GripVertical className="size-4" />
         </button>
 
-        <button
-          type="button"
+        <div
           className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
           onClick={handleRowClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              handleRowClick();
+            }
+          }}
           aria-expanded={hasContents ? expanded : undefined}
           aria-label={
             hasContents
@@ -267,9 +301,11 @@ export function DraggableItem({
               >
                 {kind === "section" ? "Section" : "Module"}
               </Badge>
-              <span className="text-sm font-medium text-foreground">
-                {title}
-              </span>
+              <InlineEditor
+                value={title}
+                onSave={onUpdateTitle ?? (async () => {})}
+                className="text-sm font-medium text-foreground"
+              />
             </div>
             {subtitle ? (
               <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
@@ -284,7 +320,7 @@ export function DraggableItem({
               )}
             />
           ) : null}
-        </button>
+        </div>
       </div>
 
       {isModule && expanded && hasContents && onReorderContents ? (
@@ -292,6 +328,7 @@ export function DraggableItem({
           moduleId={id}
           contents={contents}
           onReorderContents={onReorderContents}
+          onUpdateContent={onUpdateContent}
         />
       ) : null}
     </div>

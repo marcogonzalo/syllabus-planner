@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 
 import { AppShell, ExportButton } from "@/components/AppShell";
+import { AddModuleDialog } from "@/components/AddModuleDialog";
 import { ModuleEditor } from "@/components/ModuleEditor";
 import { SyllabusTree } from "@/components/SyllabusTree";
 import { Button } from "@/components/ui/button";
@@ -22,9 +23,13 @@ import {
   exportSyllabusCsv,
   fetchSyllabusDetail,
   fetchSyllabuses,
+  importSyllabusAsSection,
   reorderModules,
   reorderModuleContents,
   reorderSections,
+  updateContent,
+  updateModule,
+  updateSyllabus,
 } from "@/lib/api";
 import type { SyllabusDetail, SyllabusSummary } from "@/types";
 
@@ -36,6 +41,9 @@ export function SyllabusPlanner() {
   const [syllabus, setSyllabus] = useState<SyllabusDetail | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(
+    null,
+  );
+  const [addModuleSectionId, setAddModuleSectionId] = useState<number | null>(
     null,
   );
   const [loading, setLoading] = useState(true);
@@ -139,12 +147,18 @@ export function SyllabusPlanner() {
   }
 
   async function handleAddModule(sectionId: number) {
-    const title = window.prompt("Module title");
-    if (!title?.trim()) {
+    setAddModuleSectionId(sectionId);
+  }
+
+  async function handleSubmitAddModule(data: {
+    title: string;
+    duration_days: number;
+  }) {
+    if (addModuleSectionId === null) {
       return;
     }
 
-    await attachModuleToSection(sectionId, { title: title.trim() });
+    await attachModuleToSection(addModuleSectionId, data);
     if (selectedSyllabusId) {
       await loadSyllabus(selectedSyllabusId);
     }
@@ -168,6 +182,40 @@ export function SyllabusPlanner() {
     if (selectedSyllabusId) {
       await loadSyllabus(selectedSyllabusId);
     }
+  }
+
+  async function handleUpdateSectionTitle(sectionId: number, title: string) {
+    await updateSyllabus(sectionId, { title });
+    if (selectedSyllabusId) {
+      await loadSyllabus(selectedSyllabusId);
+    }
+  }
+
+  async function handleUpdateModuleTitle(moduleId: number, title: string) {
+    await updateModule(moduleId, { title });
+    if (selectedSyllabusId) {
+      await loadSyllabus(selectedSyllabusId);
+    }
+  }
+
+  async function handleUpdateContent(
+    moduleId: number,
+    contentId: number,
+    text: string,
+  ) {
+    await updateContent(moduleId, contentId, text);
+    if (selectedSyllabusId) {
+      await loadSyllabus(selectedSyllabusId);
+    }
+  }
+
+  async function handleImportSection(childId: number) {
+    if (!selectedSyllabusId) {
+      return;
+    }
+    const orderIndex = syllabus?.sections.length ?? 0;
+    await importSyllabusAsSection(selectedSyllabusId, childId, orderIndex);
+    await loadSyllabus(selectedSyllabusId);
   }
 
   function handleSelectModule(moduleId: number, sectionId: number) {
@@ -271,10 +319,17 @@ export function SyllabusPlanner() {
 
         {activeSyllabus ? (
           <>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <StatCard label="Sections" value={activeSyllabus.sections.length} />
+            <div className="grid gap-4 sm:grid-cols-4">
+              <StatCard
+                label="Sections"
+                value={activeSyllabus.sections.length}
+              />
               <StatCard label="Modules" value={activeSyllabus.totals.modules} />
-              <StatCard label="Total hours" value={activeSyllabus.totals.hours} />
+              <StatCard label="Days" value={activeSyllabus.totals.days} />
+              <StatCard
+                label="Total hours"
+                value={activeSyllabus.totals.hours}
+              />
             </div>
 
             <SyllabusTree
@@ -285,7 +340,11 @@ export function SyllabusPlanner() {
               onReorderModules={handleReorderModules}
               onReorderContents={handleReorderContents}
               onAddSection={handleAddSection}
+              onImportSection={handleImportSection}
               onAddModule={handleAddModule}
+              onUpdateSectionTitle={handleUpdateSectionTitle}
+              onUpdateModuleTitle={handleUpdateModuleTitle}
+              onUpdateContent={handleUpdateContent}
             />
           </>
         ) : (
@@ -305,6 +364,17 @@ export function SyllabusPlanner() {
             }}
           />
         ) : null}
+
+        <AddModuleDialog
+          key={addModuleSectionId ?? "closed"}
+          open={addModuleSectionId !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setAddModuleSectionId(null);
+            }
+          }}
+          onSubmit={handleSubmitAddModule}
+        />
       </div>
     </AppShell>
   );
