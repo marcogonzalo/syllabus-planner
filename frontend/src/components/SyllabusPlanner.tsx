@@ -1,25 +1,19 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Clock, ArrowLeftRight } from "lucide-react";
 
 import { AppShell, ExportButton } from "@/components/AppShell";
 import { AddModuleDialog } from "@/components/AddModuleDialog";
 import { ModuleEditor } from "@/components/ModuleEditor";
+import { SyllabusPickerDialog } from "@/components/SyllabusPickerDialog";
 import { SyllabusTree } from "@/components/SyllabusTree";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   attachModuleToSection,
   createSection,
   createSyllabus,
+  addContentToModule,
   exportSyllabusCsv,
   fetchSyllabusDetail,
   fetchSyllabuses,
@@ -46,6 +40,7 @@ export function SyllabusPlanner() {
   const [addModuleSectionId, setAddModuleSectionId] = useState<number | null>(
     null,
   );
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,20 +105,21 @@ export function SyllabusPlanner() {
     };
   }, [selectedSyllabusId]);
 
-  const activeSyllabus = selectedSyllabusId ? syllabus : null;
+  const activeSyllabus =
+    selectedSyllabusId && syllabus?.id === selectedSyllabusId ? syllabus : null;
 
-  async function handleCreateSyllabus(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const title = String(form.get("title") || "").trim();
-    if (!title) {
-      return;
-    }
-
+  async function handleCreateSyllabus(title: string) {
     const created = await createSyllabus({ title });
     await loadSyllabuses();
     setSelectedSyllabusId(created.id);
-    event.currentTarget.reset();
+    setSelectedModuleId(null);
+    setSelectedSectionId(null);
+  }
+
+  function handleSelectSyllabus(id: number) {
+    setSelectedSyllabusId(id);
+    setSelectedModuleId(null);
+    setSelectedSectionId(null);
   }
 
   async function handleAddSection() {
@@ -209,6 +205,21 @@ export function SyllabusPlanner() {
     }
   }
 
+  async function handleAddContent(moduleId: number, type: string) {
+    const section = syllabus?.sections.find((item) =>
+      item.modules.some((module) => module.id === moduleId),
+    );
+    const module = section?.modules.find((item) => item.id === moduleId);
+    await addContentToModule(moduleId, {
+      type,
+      title: "New content",
+      order_index: module?.contents?.length ?? 0,
+    });
+    if (selectedSyllabusId) {
+      await loadSyllabus(selectedSyllabusId);
+    }
+  }
+
   async function handleImportSection(childId: number) {
     if (!selectedSyllabusId) {
       return;
@@ -222,11 +233,6 @@ export function SyllabusPlanner() {
     setSelectedModuleId(moduleId);
     setSelectedSectionId(sectionId);
   }
-
-  const programItems = syllabuses.map((item) => ({
-    value: String(item.id),
-    label: item.title,
-  }));
 
   if (loading) {
     return (
@@ -256,100 +262,74 @@ export function SyllabusPlanner() {
     );
   }
 
-  return (
-    <AppShell
-      title={activeSyllabus?.title || "Syllabus Planner"}
-      subtitle="Manage sections, modules, contents, and metadata"
-      badge={
-        activeSyllabus
-          ? `${activeSyllabus.sections.length} sections · ${activeSyllabus.totals.modules} modules`
-          : `${syllabuses.length} programs`
-      }
-      actions={
-        selectedSyllabusId ? (
-          <ExportButton href={exportSyllabusCsv(selectedSyllabusId)} />
-        ) : null
-      }
-    >
-      <div className="space-y-6">
-        <div className="admin-card h-fit">
-          <div className="admin-card-header !py-4">
-            <h2 className="text-sm font-semibold text-foreground">Programs</h2>
-          </div>
-          <div className="admin-card-body space-y-4 !pt-0">
-            <Select
-              value={selectedSyllabusId ? String(selectedSyllabusId) : null}
-              items={programItems}
-              onValueChange={(value) => {
-                if (!value) {
-                  return;
-                }
-                setSelectedSyllabusId(Number(value));
-                setSelectedModuleId(null);
-              }}
-            >
-              <SelectTrigger className="w-full sm:max-w-md">
-                <SelectValue placeholder="Select program" />
-              </SelectTrigger>
-              <SelectContent>
-                {syllabuses.map((item) => (
-                  <SelectItem key={item.id} value={String(item.id)}>
-                    {item.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <form
-              onSubmit={handleCreateSyllabus}
-              className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center"
-            >
-              <Input
-                name="title"
-                placeholder="New program title"
-                className="min-w-0 flex-1 sm:max-w-md"
-              />
-              <Button type="submit" size="sm" className="shrink-0">
-                <Plus className="size-4" />
-                New Program
-              </Button>
-            </form>
-          </div>
+  const syllabusHeader = (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <h1 className="truncate text-base font-semibold text-foreground">
+            {activeSyllabus?.title ?? "Select a syllabus"}
+          </h1>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0 text-muted-foreground"
+            aria-label="Change syllabus"
+            onClick={() => setPickerOpen(true)}
+          >
+            <ArrowLeftRight className="size-3.5" />
+          </Button>
         </div>
-
         {activeSyllabus ? (
-          <>
-            <div className="grid gap-4 sm:grid-cols-4">
-              <StatCard
-                label="Sections"
-                value={activeSyllabus.sections.length}
-              />
-              <StatCard label="Modules" value={activeSyllabus.totals.modules} />
-              <StatCard label="Days" value={activeSyllabus.totals.days} />
-              <StatCard
-                label="Total hours"
-                value={activeSyllabus.totals.hours}
-              />
-            </div>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Clock className="size-3" />
+              {activeSyllabus.totals.days} days
+            </span>
+            <span aria-hidden>·</span>
+            <span>{activeSyllabus.sections.length} sections</span>
+            <span aria-hidden>·</span>
+            <span>{activeSyllabus.totals.modules} modules</span>
+            <span aria-hidden>·</span>
+            <span>{activeSyllabus.totals.hours}h</span>
+          </p>
+        ) : (
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Choose or create a program to start planning.
+          </p>
+        )}
+      </div>
 
-            <SyllabusTree
-              syllabus={activeSyllabus}
-              selectedModuleId={selectedModuleId}
-              onSelectModule={handleSelectModule}
-              onReorderSections={handleReorderSections}
-              onReorderModules={handleReorderModules}
-              onReorderContents={handleReorderContents}
-              onAddSection={handleAddSection}
-              onImportSection={handleImportSection}
-              onAddModule={handleAddModule}
-              onUpdateSectionTitle={handleUpdateSectionTitle}
-              onUpdateModuleTitle={handleUpdateModuleTitle}
-              onUpdateContent={handleUpdateContent}
-            />
-          </>
+      {selectedSyllabusId ? (
+        <div className="shrink-0">
+          <ExportButton href={exportSyllabusCsv(selectedSyllabusId)} />
+        </div>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <AppShell header={syllabusHeader}>
+      <div className="space-y-6">
+        {activeSyllabus ? (
+          <SyllabusTree
+            syllabus={activeSyllabus}
+            selectedModuleId={selectedModuleId}
+            onSelectModule={handleSelectModule}
+            onReorderSections={handleReorderSections}
+            onReorderModules={handleReorderModules}
+            onReorderContents={handleReorderContents}
+            onAddSection={handleAddSection}
+            onImportSection={handleImportSection}
+            onAddModule={handleAddModule}
+            onUpdateSectionTitle={handleUpdateSectionTitle}
+            onUpdateModuleTitle={handleUpdateModuleTitle}
+            onUpdateContent={handleUpdateContent}
+            onAddContent={handleAddContent}
+          />
         ) : (
           <div className="admin-empty">
-            Create or select a program to begin building sections and modules.
+            Use the switch button to select or create a syllabus.
           </div>
         )}
 
@@ -365,6 +345,15 @@ export function SyllabusPlanner() {
           />
         ) : null}
 
+        <SyllabusPickerDialog
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+          syllabuses={syllabuses}
+          selectedSyllabusId={selectedSyllabusId}
+          onSelect={handleSelectSyllabus}
+          onCreate={handleCreateSyllabus}
+        />
+
         <AddModuleDialog
           key={addModuleSectionId ?? "closed"}
           open={addModuleSectionId !== null}
@@ -377,14 +366,5 @@ export function SyllabusPlanner() {
         />
       </div>
     </AppShell>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="admin-stat-card">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-foreground">{value}</p>
-    </div>
   );
 }

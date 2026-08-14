@@ -9,12 +9,15 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { cn } from "@/lib/utils";
+
 type AppShellProps = {
   children: ReactNode;
-  title: string;
+  title?: string;
   subtitle?: string;
   badge?: string;
   actions?: ReactNode;
+  header?: ReactNode;
 };
 
 const navItems = [
@@ -30,6 +33,7 @@ export function AppShell({
   subtitle,
   badge,
   actions,
+  header,
 }: AppShellProps) {
   return (
     <div className="admin-page flex min-h-screen">
@@ -77,27 +81,40 @@ export function AppShell({
       </aside>
 
       <div className="flex min-h-screen flex-1 flex-col pl-16 lg:pl-56">
-        <header className="sticky top-0 z-20 border-b border-border bg-card/95 px-6 py-5 backdrop-blur">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                  {title}
-                </h1>
-                {badge ? (
-                  <span className="inline-flex items-center rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
-                    {badge}
-                  </span>
+        <header
+          className={cn(
+            "sticky top-0 z-20 border-b border-border bg-card/95 backdrop-blur",
+            header ? "px-6 py-3" : "px-6 py-5",
+          )}
+        >
+          {header ? (
+            header
+          ) : (
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                    {title}
+                  </h1>
+                  {badge ? (
+                    <span className="inline-flex items-center rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground">
+                      {badge}
+                    </span>
+                  ) : null}
+                </div>
+                {subtitle ? (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {subtitle}
+                  </p>
                 ) : null}
               </div>
-              {subtitle ? (
-                <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+              {actions ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  {actions}
+                </div>
               ) : null}
             </div>
-            {actions ? (
-              <div className="flex flex-wrap items-center gap-2">{actions}</div>
-            ) : null}
-          </div>
+          )}
         </header>
 
         <main className="flex-1 px-6 py-6">{children}</main>
@@ -110,7 +127,7 @@ export function ExportButton({ href }: { href: string }) {
   return (
     <a
       href={href}
-      className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+      className="inline-flex h-8 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
     >
       <Download className="size-4" />
       Export CSV

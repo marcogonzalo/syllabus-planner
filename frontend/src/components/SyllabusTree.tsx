@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { ChevronDown, Link2, Plus, Search, X } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { SectionCard } from "@/components/SectionCard";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,12 @@ type SyllabusTreeProps = {
   onAddModule: (sectionId: number) => void;
   onUpdateSectionTitle: (sectionId: number, title: string) => Promise<void>;
   onUpdateModuleTitle?: (moduleId: number, title: string) => Promise<void>;
-  onUpdateContent?: (moduleId: number, contentId: number, text: string) => Promise<void>;
+  onUpdateContent?: (
+    moduleId: number,
+    contentId: number,
+    text: string,
+  ) => Promise<void>;
+  onAddContent?: (moduleId: number, type: string) => Promise<void>;
 };
 
 function ImportSectionPanel({
@@ -71,7 +76,7 @@ function ImportSectionPanel({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-background p-4">
+    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="mb-3 flex items-center gap-2">
         <Search className="size-4 text-muted-foreground" />
         <span className="text-sm font-medium text-foreground">
@@ -118,6 +123,93 @@ function ImportSectionPanel({
   );
 }
 
+function AddSectionSlot({
+  onNewSection,
+  onImportSection,
+}: {
+  onNewSection: () => void;
+  onImportSection: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="flex justify-center py-1">
+      <div ref={rootRef} className="relative">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs"
+          aria-expanded={open}
+          aria-haspopup="menu"
+          onClick={() => setOpen((current) => !current)}
+        >
+          <Plus className="size-3.5" />
+          Add Section
+          <ChevronDown className="size-3" />
+        </Button>
+        {open ? (
+          <div
+            role="menu"
+            className="absolute top-full left-1/2 z-10 mt-1 w-52 -translate-x-1/2 rounded-lg border border-border bg-card shadow-md"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onNewSection();
+              }}
+              className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50"
+            >
+              <Plus className="size-4 text-muted-foreground" />
+              New section
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onImportSection();
+              }}
+              className="flex w-full items-center gap-2 rounded-b-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50"
+            >
+              <Link2 className="size-4 text-muted-foreground" />
+              Import existing syllabus
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function SyllabusTree({
   syllabus,
   selectedModuleId,
@@ -131,8 +223,8 @@ export function SyllabusTree({
   onUpdateSectionTitle,
   onUpdateModuleTitle,
   onUpdateContent,
+  onAddContent,
 }: SyllabusTreeProps) {
-  const [showAddMenu, setShowAddMenu] = useState(false);
   const [showImportPanel, setShowImportPanel] = useState(false);
 
   const sectionIds = useMemo(
@@ -159,89 +251,41 @@ export function SyllabusTree({
     await onReorderSections(nextOrder);
   }
 
-  function handleNewSection() {
-    setShowAddMenu(false);
-    setShowImportPanel(false);
-    onAddSection();
-  }
-
-  function handleShowImport() {
-    setShowAddMenu(false);
-    setShowImportPanel(true);
-  }
-
   return (
-    <div className="admin-card">
-      <div className="admin-card-header">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Program structure
-          </p>
-          <h2 className="text-lg font-semibold text-foreground">
-            Sections & modules
-          </h2>
-        </div>
-        <div className="relative">
-          <Button
-            onClick={() => setShowAddMenu((v) => !v)}
-            size="sm"
-          >
-            <Plus className="size-4" />
-            Add Section
-            <ChevronDown className="size-3 ml-1" />
-          </Button>
-          {showAddMenu ? (
-            <div className="absolute right-0 top-full z-10 mt-1 w-52 rounded-lg border border-border bg-card shadow-md">
-              <button
-                type="button"
-                onClick={handleNewSection}
-                className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50"
-              >
-                <Plus className="size-4 text-muted-foreground" />
-                New section
-              </button>
-              <button
-                type="button"
-                onClick={handleShowImport}
-                className="flex w-full items-center gap-2 rounded-b-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50"
-              >
-                <Link2 className="size-4 text-muted-foreground" />
-                Import existing syllabus
-              </button>
-            </div>
-          ) : null}
-        </div>
-      </div>
-
+    <div className="flex flex-col gap-2">
       {showImportPanel ? (
-        <div className="border-b border-border px-6 py-4">
-          <ImportSectionPanel
-            onImport={onImportSection}
-            onCancel={() => setShowImportPanel(false)}
-          />
+        <ImportSectionPanel
+          onImport={onImportSection}
+          onCancel={() => setShowImportPanel(false)}
+        />
+      ) : null}
+
+      {syllabus.sections.length === 0 && !showImportPanel ? (
+        <div className="admin-empty">
+          No sections yet. Add a section (microsyllabus) to start building the
+          program.
         </div>
       ) : null}
 
-      <div className="admin-card-body">
-        {syllabus.sections.length === 0 && !showImportPanel ? (
-          <div className="admin-empty">
-            No sections yet. Add a section (microsyllabus) to start building the
-            program.
-          </div>
-        ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleSectionDragEnd}
+      <AddSectionSlot
+        onNewSection={onAddSection}
+        onImportSection={() => setShowImportPanel(true)}
+      />
+
+      {syllabus.sections.length > 0 ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleSectionDragEnd}
+        >
+          <SortableContext
+            items={sectionIds}
+            strategy={verticalListSortingStrategy}
           >
-            <SortableContext
-              items={sectionIds}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="flex flex-col gap-4">
-                {syllabus.sections.map((section: Section) => (
+            <div className="flex flex-col gap-2">
+              {syllabus.sections.map((section: Section) => (
+                <div key={section.id} className="flex flex-col gap-2">
                   <SectionCard
-                    key={section.id}
                     section={section}
                     selectedModuleId={selectedModuleId}
                     onSelectModule={onSelectModule}
@@ -251,13 +295,18 @@ export function SyllabusTree({
                     onUpdateTitle={onUpdateSectionTitle}
                     onUpdateModuleTitle={onUpdateModuleTitle}
                     onUpdateContent={onUpdateContent}
+                    onAddContent={onAddContent}
                   />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        )}
-      </div>
+                  <AddSectionSlot
+                    onNewSection={onAddSection}
+                    onImportSection={() => setShowImportPanel(true)}
+                  />
+                </div>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      ) : null}
     </div>
   );
 }

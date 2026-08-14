@@ -41,6 +41,7 @@ type SectionCardProps = {
     contentId: number,
     text: string,
   ) => Promise<void>;
+  onAddContent?: (moduleId: number, type: string) => Promise<void>;
 };
 
 function SectionShell({
@@ -117,11 +118,6 @@ function SectionShell({
                 className="text-base font-semibold text-foreground"
               />
             </div>
-            {section.description ? (
-              <p className="mt-1 text-sm text-muted-foreground">
-                {section.description}
-              </p>
-            ) : null}
             <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <Clock className="size-3.5" />
@@ -171,6 +167,7 @@ export function SectionCard({
   onUpdateTitle,
   onUpdateModuleTitle,
   onUpdateContent,
+  onAddContent,
 }: SectionCardProps) {
   const moduleIds = section.modules.map((module) => module.id);
   const sensors = useSensors(
@@ -243,6 +240,7 @@ export function SectionCard({
                       : undefined
                   }
                   onUpdateContent={onUpdateContent}
+                  onAddContent={onAddContent}
                 />
               ))}
             </div>
