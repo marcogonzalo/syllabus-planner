@@ -10,11 +10,7 @@ describe("InlineEditor", () => {
 
   it("renders placeholder when value is empty", () => {
     render(
-      <InlineEditor
-        value=""
-        onSave={() => {}}
-        placeholder="Click to edit"
-      />,
+      <InlineEditor value="" onSave={() => {}} placeholder="Click to edit" />,
     );
     expect(screen.getByText("Click to edit")).toBeInTheDocument();
   });
@@ -43,5 +39,20 @@ describe("InlineEditor", () => {
     fireEvent.change(input, { target: { value: "Changed" } });
     fireEvent.keyDown(input, { key: "Escape" });
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("opens controlled multiline editor when editing is true", () => {
+    render(
+      <InlineEditor
+        value={"Title\nBody line"}
+        onSave={() => {}}
+        multiline
+        displayValue="Title"
+        editing={true}
+        onEditingChange={() => {}}
+      />,
+    );
+    const textarea = screen.getByRole("textbox");
+    expect(textarea).toHaveValue("Title\nBody line");
   });
 });

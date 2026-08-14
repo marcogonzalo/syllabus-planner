@@ -14,18 +14,21 @@ const DISPLAY_ORDER: ContentTypeKey[] = [
   "project",
 ];
 
-function uniqueNormalizedTypes(types: string[]): ContentTypeKey[] {
+/** One icon per distinct type in the module, capped at 4. */
+export function visibleContentTypeIcons(
+  types: string[] | null | undefined,
+): ContentTypeKey[] {
   const seen = new Set<ContentTypeKey>();
   const ordered: ContentTypeKey[] = [];
 
   for (const key of DISPLAY_ORDER) {
-    if (types.some((type) => normalizeContentType(type) === key)) {
+    if (types?.some((type) => normalizeContentType(type) === key)) {
       seen.add(key);
       ordered.push(key);
     }
   }
 
-  for (const type of types) {
+  for (const type of types ?? []) {
     const normalized = normalizeContentType(type);
     if (normalized && !seen.has(normalized)) {
       seen.add(normalized);
@@ -33,59 +36,46 @@ function uniqueNormalizedTypes(types: string[]): ContentTypeKey[] {
     }
   }
 
-  return ordered;
+  return ordered.slice(0, MAX_VISIBLE);
 }
 
 type ContentTypeIconStackProps = {
   types?: string[] | null;
+  count?: number;
   className?: string;
 };
 
 export function ContentTypeIconStack({
   types,
+  count,
   className,
 }: ContentTypeIconStackProps) {
-  const normalized = uniqueNormalizedTypes(types ?? []);
-  const visible = normalized.slice(0, MAX_VISIBLE);
-  const overflow = normalized.length - visible.length;
+  const visible = visibleContentTypeIcons(types);
+  const total = count ?? types?.length ?? 0;
 
-  if (normalized.length === 0) {
+  if (visible.length === 0) {
     return (
-      <div
-        className={cn(
-          "flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-medium text-muted-foreground",
-          className,
-        )}
-        aria-hidden
-      >
-        —
+      <div className={cn("flex shrink-0 items-center", className)} aria-hidden>
+        <div className="flex size-8 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-semibold text-muted-foreground tabular-nums">
+          {total}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={cn("flex items-center", className)} aria-hidden>
+    <div className={cn("flex shrink-0 items-center", className)} aria-hidden>
+      <div className="flex size-8 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-semibold text-foreground tabular-nums">
+        {total}
+      </div>
       {visible.map((type, index) => (
         <ContentTypeIcon
           key={type}
           type={type}
-          className={cn(
-            "size-8 !rounded-full border-2 border-background",
-            index > 0 && "-ml-2.5",
-          )}
+          className="size-8 -ml-2.5 !rounded-full border-2 border-background"
           iconClassName="size-3.5"
         />
       ))}
-      {overflow > 0 ? (
-        <div
-          className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-background bg-muted text-xs font-semibold text-muted-foreground",
-            "-ml-2.5",
-          )}
-        >
-          +{overflow}
-        </div>
-      ) : null}
     </div>
   );
 }

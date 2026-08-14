@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -18,15 +18,95 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronDown, GripVertical } from "lucide-react";
+import { ChevronDown, GripVertical, Plus } from "lucide-react";
 
 import { ContentTypeIcon } from "@/components/ContentTypeIcon";
 import { ContentTypeIconStack } from "@/components/ContentTypeIconStack";
 import { InlineEditor } from "@/components/InlineEditor";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { resolveContentDisplay } from "@/lib/content";
 import { cn } from "@/lib/utils";
 import type { ContentSummary } from "@/types";
+
+const CONTENT_ADD_TYPES = [
+  { type: "theory", label: "Lesson" },
+  { type: "exercise", label: "Exercise" },
+  { type: "project", label: "Project" },
+  { type: "quiz", label: "Quiz" },
+] as const;
+
+function AddContentDropdown({ onAdd }: { onAdd: (type: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative w-fit">
+      <Button
+        type="button"
+        variant="link"
+        size="sm"
+        className="h-auto px-0 text-xs"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen((current) => !current);
+        }}
+      >
+        <Plus className="size-3" />
+        Add asset
+      </Button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute top-full right-0 z-20 mt-1 min-w-40 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
+        >
+          {CONTENT_ADD_TYPES.map(({ type, label }) => (
+            <button
+              key={type}
+              type="button"
+              role="menuitem"
+              className="flex w-full cursor-pointer items-center rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-muted"
+              onClick={(event) => {
+                event.stopPropagation();
+                setOpen(false);
+                onAdd(type);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 type ContentItemRowProps = {
   content: ContentSummary;
@@ -35,6 +115,7 @@ type ContentItemRowProps = {
 
 function ContentItemRow({ content, onSave }: ContentItemRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
   const { title, body } = resolveContentDisplay(content);
   const hasBody = Boolean(body);
 
@@ -54,6 +135,12 @@ function ContentItemRow({ content, onSave }: ContentItemRowProps) {
     transition,
     zIndex: isDragging ? 10 : 1,
   };
+
+  function startEditing(event: React.MouseEvent | React.KeyboardEvent) {
+    event.stopPropagation();
+    event.preventDefault();
+    setEditing(true);
+  }
 
   return (
     <div
@@ -79,17 +166,21 @@ function ContentItemRow({ content, onSave }: ContentItemRowProps) {
         <div
           className={cn(
             "flex min-w-0 flex-1 items-center gap-3 text-left",
-            hasBody && "cursor-pointer",
+            hasBody && !editing && "cursor-pointer",
           )}
           onClick={() => {
-            if (hasBody) {
+            if (hasBody && !editing) {
               setExpanded((current) => !current);
             }
           }}
           role="button"
           tabIndex={0}
           onKeyDown={(event) => {
-            if ((event.key === "Enter" || event.key === " ") && hasBody) {
+            if (
+              (event.key === "Enter" || event.key === " ") &&
+              hasBody &&
+              !editing
+            ) {
               event.preventDefault();
               setExpanded((current) => !current);
             }
@@ -110,10 +201,12 @@ function ContentItemRow({ content, onSave }: ContentItemRowProps) {
               onSave={onSave ?? (async () => {})}
               multiline
               displayValue={title}
+              editing={editing}
+              onEditingChange={setEditing}
               className="text-sm font-medium text-foreground"
             />
           </div>
-          {hasBody ? (
+          {hasBody && !editing ? (
             <ChevronDown
               className={cn(
                 "size-4 shrink-0 text-muted-foreground transition-transform",
@@ -123,10 +216,20 @@ function ContentItemRow({ content, onSave }: ContentItemRowProps) {
           ) : null}
         </div>
       </div>
-      {hasBody && expanded ? (
-        <div className="mt-2 pl-11 text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
+      {hasBody && expanded && !editing ? (
+        <button
+          type="button"
+          onClick={startEditing}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              startEditing(event);
+            }
+          }}
+          className="mt-2 w-full cursor-pointer rounded px-1.5 py-0.5 pl-11 text-left text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground transition-colors hover:bg-muted/50"
+          title="Click to edit"
+        >
           {body}
-        </div>
+        </button>
       ) : null}
     </div>
   );
@@ -136,7 +239,12 @@ type ModuleContentsListProps = {
   moduleId: number;
   contents: ContentSummary[];
   onReorderContents: (moduleId: number, orderedIds: number[]) => Promise<void>;
-  onUpdateContent?: (moduleId: number, contentId: number, text: string) => Promise<void>;
+  onUpdateContent?: (
+    moduleId: number,
+    contentId: number,
+    text: string,
+  ) => Promise<void>;
+  onAddContent?: (moduleId: number, type: string) => Promise<void>;
 };
 
 function ModuleContentsList({
@@ -144,6 +252,7 @@ function ModuleContentsList({
   contents,
   onReorderContents,
   onUpdateContent,
+  onAddContent,
 }: ModuleContentsListProps) {
   const contentIds = contents.map((content) => content.id);
   const sensors = useSensors(
@@ -168,26 +277,48 @@ function ModuleContentsList({
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleContentDragEnd}
-    >
-      <SortableContext
-        items={contentIds}
-        strategy={verticalListSortingStrategy}
-      >
-        <div className="ml-7 flex flex-col gap-2 border-l border-border pl-3">
-          {contents.map((content) => (
-            <ContentItemRow
-              key={content.id}
-              content={content}
-              onSave={onUpdateContent ? (text) => onUpdateContent(moduleId, content.id, text) : undefined}
-            />
-          ))}
+    <div className="ml-7 flex flex-col gap-2 border-l border-border pl-3">
+      {contents.length > 0 ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleContentDragEnd}
+        >
+          <SortableContext
+            items={contentIds}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="flex flex-col gap-2">
+              {contents.map((content) => (
+                <ContentItemRow
+                  key={content.id}
+                  content={content}
+                  onSave={
+                    onUpdateContent
+                      ? (text) => onUpdateContent(moduleId, content.id, text)
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      ) : (
+        <p className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+          No contents yet.
+        </p>
+      )}
+
+      {onAddContent ? (
+        <div className="flex justify-end">
+          <AddContentDropdown
+            onAdd={(type) => {
+              void onAddContent(moduleId, type);
+            }}
+          />
         </div>
-      </SortableContext>
-    </DndContext>
+      ) : null}
+    </div>
   );
 }
 
@@ -202,7 +333,12 @@ type DraggableItemProps = {
   onSelect?: () => void;
   onReorderContents?: (moduleId: number, orderedIds: number[]) => Promise<void>;
   onUpdateTitle?: (title: string) => Promise<void>;
-  onUpdateContent?: (moduleId: number, contentId: number, text: string) => Promise<void>;
+  onUpdateContent?: (
+    moduleId: number,
+    contentId: number,
+    text: string,
+  ) => Promise<void>;
+  onAddContent?: (moduleId: number, type: string) => Promise<void>;
 };
 
 export function DraggableItem({
@@ -217,10 +353,15 @@ export function DraggableItem({
   onReorderContents,
   onUpdateTitle,
   onUpdateContent,
+  onAddContent,
 }: DraggableItemProps) {
   const [expanded, setExpanded] = useState(false);
   const isModule = kind === "module";
-  const hasContents = isModule && contents.length > 0;
+  const canExpand = isModule;
+  const stackTypes =
+    contents.length > 0
+      ? contents.map((content) => content.type)
+      : (contentTypes ?? []);
 
   const {
     attributes,
@@ -239,7 +380,7 @@ export function DraggableItem({
 
   function handleRowClick() {
     onSelect?.();
-    if (hasContents) {
+    if (canExpand) {
       setExpanded((current) => !current);
     }
   }
@@ -277,9 +418,9 @@ export function DraggableItem({
               handleRowClick();
             }
           }}
-          aria-expanded={hasContents ? expanded : undefined}
+          aria-expanded={canExpand ? expanded : undefined}
           aria-label={
-            hasContents
+            canExpand
               ? expanded
                 ? `Collapse ${title}`
                 : `Expand ${title}`
@@ -287,7 +428,10 @@ export function DraggableItem({
           }
         >
           {isModule ? (
-            <ContentTypeIconStack types={contentTypes} />
+            <ContentTypeIconStack
+              types={stackTypes}
+              count={contents.length || stackTypes.length}
+            />
           ) : (
             <ContentTypeIcon type="lesson" />
           )}
@@ -312,7 +456,7 @@ export function DraggableItem({
             ) : null}
           </div>
 
-          {hasContents ? (
+          {canExpand ? (
             <ChevronDown
               className={cn(
                 "size-4 shrink-0 text-muted-foreground transition-transform",
@@ -323,12 +467,13 @@ export function DraggableItem({
         </div>
       </div>
 
-      {isModule && expanded && hasContents && onReorderContents ? (
+      {isModule && expanded && onReorderContents ? (
         <ModuleContentsList
           moduleId={id}
           contents={contents}
           onReorderContents={onReorderContents}
           onUpdateContent={onUpdateContent}
+          onAddContent={onAddContent}
         />
       ) : null}
     </div>

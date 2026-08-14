@@ -12,6 +12,8 @@ type InlineEditorProps = {
   className?: string;
   textClassName?: string;
   displayValue?: string;
+  editing?: boolean;
+  onEditingChange?: (editing: boolean) => void;
 };
 
 export function InlineEditor({
@@ -22,10 +24,27 @@ export function InlineEditor({
   className,
   textClassName,
   displayValue,
+  editing: editingProp,
+  onEditingChange,
 }: InlineEditorProps) {
-  const [editing, setEditing] = useState(false);
+  const isControlled = editingProp !== undefined;
+  const [uncontrolledEditing, setUncontrolledEditing] = useState(false);
+  const editing = isControlled ? editingProp : uncontrolledEditing;
   const [draft, setDraft] = useState(value);
   const ref = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
+
+  function setEditing(next: boolean) {
+    if (!isControlled) {
+      setUncontrolledEditing(next);
+    }
+    onEditingChange?.(next);
+  }
+
+  useEffect(() => {
+    if (editing) {
+      setDraft(value);
+    }
+  }, [editing, value]);
 
   useEffect(() => {
     if (editing) {
@@ -110,10 +129,7 @@ export function InlineEditor({
         onChange={handleTextareaChange}
         onBlur={handleCommit}
         onKeyDown={handleKeyDown}
-        className={cn(
-          "w-full resize-none overflow-hidden rounded border border-primary bg-background px-1.5 py-0.5 text-sm outline-none ring-1 ring-primary/30",
-          className,
-        )}
+        className="w-full resize-none overflow-hidden rounded border border-primary bg-background px-1.5 py-1 font-mono text-sm font-normal leading-relaxed text-foreground outline-none ring-1 ring-primary/30"
       />
     );
   }
